@@ -555,6 +555,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         return res;
     }
 
+    //
     protected void intentWeb(String url) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
