@@ -485,17 +485,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         handleException(e);
     }
 
-
-
-
-
-
-    // ------------------------------------------------------------------------
-    //
-    // オプション：ネットワーク通信処理
-    //
-    // ------------------------------------------------------------------------
-
     public String encodeURL(String param) {
         return URLEncoder.encode(param);
     }
@@ -508,7 +497,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         return http2str(url);
     }
 
-    //HTTP通信→文字列
     protected static String http2str(
             //Context context,
             String path)
@@ -519,7 +507,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         return new String(w);
     }
 
-    //HTTP通信
     public static byte[] http2data(String path) //throws Exception
     {
         int size;
@@ -528,14 +515,12 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         InputStream in=null;
         ByteArrayOutputStream out=null;
         try {
-            //HTTP接続のオープン(2)
             URL url=new URL(path);
             c=(HttpURLConnection)url.openConnection();
             c.setRequestMethod("GET");
             c.connect();
             in=c.getInputStream();
 
-            //バイト配列の読み込み
             out=new ByteArrayOutputStream();
             while (true) {
                 size=in.read(w);
@@ -544,7 +529,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
             }
             out.close();
 
-            //HTTP接続のクローズ(3)
             in.close();
             c.disconnect();
             return out.toByteArray();
@@ -565,14 +549,12 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         String[] res = new String[st.countTokens()];
 
         for (int i=0; st.hasMoreTokens(); i++) {
-            // 1行の各要素をタブ区切りで表示
             res[i] = st.nextToken();
         }
 
         return res;
     }
 
-    //
     protected void intentWeb(String url) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
