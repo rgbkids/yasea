@@ -1,12 +1,15 @@
 package net.ossrs.yasea.demo;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,6 +31,13 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.Random;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.StringTokenizer;
+
 public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpListener,
                         SrsRecordHandler.SrsRecordListener, SrsEncodeHandler.SrsEncodeListener {
 
@@ -37,9 +47,12 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnSwitchCamera;
     private Button btnRecord;
     private Button btnSwitchEncoder;
+    private Button btnWeb;
 
     private SharedPreferences sp;
-    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+//    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+    private String rtmpUrl = "";
+    private String hlsUrl  = "";
     private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
     private SrsPublisher mPublisher;
@@ -48,24 +61,72 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // add TODO:APIで取得したい
+//        rtmpUrl = "rtmp://ap9wrxyw.hlsfree.space:1935/hls/08efec5088773ab95d91901c42d9ce9d?u=c0dfe46a&p=93b824e6";
+
+//        String hlsfreeResult = httpGetString("http://hlsfree.space/logic/?mode=api");
+//        String[] hlsfreeVals = csv(hlsfreeResult, ",");
+//        rtmpUrl = hlsfreeVals[0];
+//        hlsUrl  = hlsfreeVals[1];
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String hlsfreeResult = httpGetString("http://hlsfree.space/logic/?mode=api");
+                    String[] hlsfreeVals = csv(hlsfreeResult, ",");
+                    rtmpUrl = hlsfreeVals[0];
+                    hlsUrl  = hlsfreeVals[1];
+                } catch(Exception ex) {
+                    System.out.println(ex);
+                }
+            }
+        }).start();
+
+        while (rtmpUrl == null || rtmpUrl.equals("")) {
+            try {
+                Thread.sleep(100);
+                Thread.yield();
+            } catch (Exception e) {}
+        }
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
         // response screen rotation event
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
+//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
 
         // restore data.
-        sp = getSharedPreferences("Yasea", MODE_PRIVATE);
-        rtmpUrl = sp.getString("rtmpUrl", rtmpUrl);
+//        sp = getSharedPreferences("Yasea", MODE_PRIVATE);
+//        rtmpUrl = sp.getString("rtmpUrl", rtmpUrl);
 
         // initialize url.
         final EditText efu = (EditText) findViewById(R.id.url);
-        efu.setText(rtmpUrl);
+//        efu.setText(rtmpUrl);
+        efu.setText(hlsUrl);
+
+
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int winW = dm.widthPixels;
+        int winH = dm.heightPixels;
 
         btnPublish = (Button) findViewById(R.id.publish);
+        btnPublish.setWidth((int)(winW/2));
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
+        btnSwitchCamera.setWidth((int)(winW/2));
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
+
+        btnWeb = (Button) findViewById(R.id.openWeb);
+        btnWeb.setOnClickListener(new View.OnClickListener() {
+                                      @Override
+                                      public void onClick(View v) {
+//                                          intentWeb("http://hlsfree.space/tmp/sample.html?src=" + hlsUrl);
+                                          intentWeb(hlsUrl);
+                                      }
+                                  });
+        btnWeb.setVisibility(View.INVISIBLE);
 
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
@@ -76,14 +137,28 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setVideoHDMode();
         mPublisher.startCamera();
 
+        // add
+//        mPublisher.switchToSoftEncoder();
+//        btnSwitchEncoder.setText("hard encoder");
+//        if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
+//            mPublisher.switchToSoftEncoder();
+//            btnSwitchEncoder.setText("hard encoder");
+//        } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
+//            mPublisher.switchToHardEncoder();
+//            btnSwitchEncoder.setText("soft encoder");
+//        }
+
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (btnPublish.getText().toString().contentEquals("publish")) {
-                    rtmpUrl = efu.getText().toString();
-                    SharedPreferences.Editor editor = sp.edit();
-                    editor.putString("rtmpUrl", rtmpUrl);
-                    editor.apply();
+                if (btnPublish.getText().toString().contentEquals("LIVE START!")) {
+//                    rtmpUrl = efu.getText().toString();
+//                    SharedPreferences.Editor editor = sp.edit();
+//                    editor.putString("rtmpUrl", rtmpUrl);
+//                    editor.putString("rtmpUrl", hlsUrl);
+//                    editor.apply();
+
+                    ((EditText) findViewById(R.id.url)).setText(hlsUrl);
 
                     mPublisher.startPublish(rtmpUrl);
                     mPublisher.startCamera();
@@ -95,12 +170,14 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     }
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
+                    btnWeb.setVisibility(View.VISIBLE);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
-                    btnPublish.setText("publish");
+                    btnPublish.setText("LIVE START!");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
+                    btnWeb.setVisibility(View.INVISIBLE);
                 }
             }
         });
@@ -158,58 +235,58 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        } else {
-            switch (id) {
-                case R.id.cool_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.COOL);
-                    break;
-                case R.id.beauty_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.BEAUTY);
-                    break;
-                case R.id.early_bird_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.EARLYBIRD);
-                    break;
-                case R.id.evergreen_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.EVERGREEN);
-                    break;
-                case R.id.n1977_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.N1977);
-                    break;
-                case R.id.nostalgia_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.NOSTALGIA);
-                    break;
-                case R.id.romance_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.ROMANCE);
-                    break;
-                case R.id.sunrise_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.SUNRISE);
-                    break;
-                case R.id.sunset_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.SUNSET);
-                    break;
-                case R.id.tender_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.TENDER);
-                    break;
-                case R.id.toast_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.TOASTER2);
-                    break;
-                case R.id.valencia_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.VALENCIA);
-                    break;
-                case R.id.walden_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.WALDEN);
-                    break;
-                case R.id.warm_filter:
-                    mPublisher.switchCameraFilter(MagicFilterType.WARM);
-                    break;
-                case R.id.original_filter:
-                default:
-                    mPublisher.switchCameraFilter(MagicFilterType.NONE);
-                    break;
-            }
-        }
+//        if (id == R.id.action_settings) {
+//            return true;
+//        } else {
+//            switch (id) {
+//                case R.id.cool_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.COOL);
+//                    break;
+//                case R.id.beauty_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.BEAUTY);
+//                    break;
+//                case R.id.early_bird_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.EARLYBIRD);
+//                    break;
+//                case R.id.evergreen_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.EVERGREEN);
+//                    break;
+//                case R.id.n1977_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.N1977);
+//                    break;
+//                case R.id.nostalgia_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.NOSTALGIA);
+//                    break;
+//                case R.id.romance_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.ROMANCE);
+//                    break;
+//                case R.id.sunrise_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.SUNRISE);
+//                    break;
+//                case R.id.sunset_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.SUNSET);
+//                    break;
+//                case R.id.tender_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.TENDER);
+//                    break;
+//                case R.id.toast_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.TOASTER2);
+//                    break;
+//                case R.id.valencia_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.VALENCIA);
+//                    break;
+//                case R.id.walden_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.WALDEN);
+//                    break;
+//                case R.id.warm_filter:
+//                    mPublisher.switchCameraFilter(MagicFilterType.WARM);
+//                    break;
+//                case R.id.original_filter:
+//                default:
+//                    mPublisher.switchCameraFilter(MagicFilterType.NONE);
+//                    break;
+//            }
+//        }
         setTitle(item.getTitle());
 
         return super.onOptionsItemSelected(item);
@@ -276,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
             mPublisher.stopPublish();
             mPublisher.stopRecord();
-            btnPublish.setText("publish");
+            btnPublish.setText("LIVE START!");
             btnRecord.setText("record");
             btnSwitchEncoder.setEnabled(true);
         } catch (Exception e1) {
@@ -406,5 +483,100 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     @Override
     public void onEncodeIllegalArgumentException(IllegalArgumentException e) {
         handleException(e);
+    }
+
+
+
+
+
+
+    // ------------------------------------------------------------------------
+    //
+    // オプション：ネットワーク通信処理
+    //
+    // ------------------------------------------------------------------------
+
+    public String encodeURL(String param) {
+        return URLEncoder.encode(param);
+    }
+
+    public byte[] httpGet(String url) {
+        return http2data(url);
+    }
+
+    public String httpGetString(String url) {
+        return http2str(url);
+    }
+
+    //HTTP通信→文字列
+    protected static String http2str(
+            //Context context,
+            String path)
+    //throws Exception
+    {
+        byte[] w=http2data(path);
+        if (w == null) return null;
+        return new String(w);
+    }
+
+    //HTTP通信
+    public static byte[] http2data(String path) //throws Exception
+    {
+        int size;
+        byte[] w=new byte[1024];
+        HttpURLConnection c=null;
+        InputStream in=null;
+        ByteArrayOutputStream out=null;
+        try {
+            //HTTP接続のオープン(2)
+            URL url=new URL(path);
+            c=(HttpURLConnection)url.openConnection();
+            c.setRequestMethod("GET");
+            c.connect();
+            in=c.getInputStream();
+
+            //バイト配列の読み込み
+            out=new ByteArrayOutputStream();
+            while (true) {
+                size=in.read(w);
+                if (size<=0) break;
+                out.write(w,0,size);
+            }
+            out.close();
+
+            //HTTP接続のクローズ(3)
+            in.close();
+            c.disconnect();
+            return out.toByteArray();
+        } catch (Throwable e) {
+            try {
+                if (c!=null) c.disconnect();
+                if (in!=null) in.close();
+                if (out!=null) out.close();
+            } catch (Exception e2) {
+            }
+            //throw e;
+        }
+        return null;
+    }
+
+    public static String[] csv(String str, String delim) {
+        StringTokenizer st = new StringTokenizer(str, delim);
+        String[] res = new String[st.countTokens()];
+
+        for (int i=0; st.hasMoreTokens(); i++) {
+            // 1行の各要素をタブ区切りで表示
+            res[i] = st.nextToken();
+        }
+
+        return res;
+    }
+
+    //
+    protected void intentWeb(String url) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url));
+        startActivity(intent);
     }
 }
