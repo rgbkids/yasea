@@ -1,5 +1,8 @@
 package net.ossrs.yasea.demo;
 
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -119,14 +122,21 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
         btnWeb = (Button) findViewById(R.id.openWeb);
-        btnWeb.setOnClickListener(new View.OnClickListener() {
-                                      @Override
-                                      public void onClick(View v) {
-//                                          intentWeb("http://hlsfree.space/tmp/sample.html?src=" + hlsUrl);
-                                          intentWeb(hlsUrl);
-                                      }
-                                  });
-        btnWeb.setVisibility(View.INVISIBLE);
+        btnWeb.setOnClickListener(
+                new View.OnClickListener() {
+                      @Override
+                      public void onClick(View v) {intentWeb(hlsUrl);
+                  }
+              });
+        btnWeb.setEnabled(false);
+
+        findViewById(R.id.copy).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setClipData(hlsUrl);
+                Toast.makeText(getApplicationContext(), "Copied to clipboard.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
@@ -134,8 +144,10 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
         mPublisher.setPreviewResolution(640, 360);
         mPublisher.setOutputResolution(360, 640);
-        mPublisher.setVideoHDMode();
+//        mPublisher.setVideoHDMode();
+        mPublisher.setVideoSmoothMode();
         mPublisher.startCamera();
+
 
         // add
 //        mPublisher.switchToSoftEncoder();
@@ -164,20 +176,20 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     mPublisher.startCamera();
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                        Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
                     }
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
-                    btnWeb.setVisibility(View.VISIBLE);
+                    btnWeb.setEnabled(true);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
                     btnPublish.setText("LIVE START!");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
-                    btnWeb.setVisibility(View.INVISIBLE);
+                    btnWeb.setEnabled(false);
                 }
             }
         });
@@ -561,5 +573,29 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         intent.setAction(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(url));
         startActivity(intent);
+    }
+
+    // テキストデータをクリップボードに格納する
+    // 格納成功時はtrueを返す
+    private boolean setClipData(String allText) {
+        try {
+            //クリップボードに格納するItemを作成
+            ClipData.Item item = new ClipData.Item(allText);
+
+            //MIMETYPEの作成
+            String[] mimeType = new String[1];
+            mimeType[0] = ClipDescription.MIMETYPE_TEXT_URILIST;
+
+            //クリップボードに格納するClipDataオブジェクトの作成
+            ClipData cd = new ClipData(new ClipDescription("text_data", mimeType), item);
+
+            //クリップボードにデータを格納
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(cd);
+            return true;
+        }
+        catch(Exception e) {
+            return false;
+        }
     }
 }

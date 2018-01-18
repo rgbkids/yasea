@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="net.ossrs.yasea.demo.MainActivity">
+
+    <net.ossrs.yasea.SrsCameraView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/glsurfaceview_camera"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LIVE START!"
+        android:id="@+id/publish"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CAMERA SWITCH"
+        android:id="@+id/swCam"
+        android:layout_alignBottom="@+id/publish"
+        android:layout_toRightOf="@+id/publish" />
+
+    <Button
+        android:layout_width="0px"
+        android:layout_height="wrap_content"
+        android:text="record"
+        android:id="@+id/record"
+        android:layout_alignBottom="@+id/publish"
+        android:layout_toRightOf="@id/swCam"
+        android:visibility="invisible"
+        />
+
+    <Button
+        android:layout_width="0px"
+        android:layout_height="wrap_content"
+        android:text="soft encoder"
+        android:id="@+id/swEnc"
+        android:layout_alignBottom="@+id/publish"
+        android:layout_toRightOf="@id/record"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:visibility="invisible"/>
+
+    <EditText
+        android:id="@+id/url"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/accent_material_light"
+        android:textSize="14dp"
+        android:visibility="visible" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="show"
+        android:id="@+id/openWeb"
+        android:layout_toLeftOf="@id/url"
+        android:layout_alignParentRight="true"
+        />
+
+</RelativeLayout>
