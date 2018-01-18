@@ -21,14 +21,21 @@
         <Button
             android:layout_width="200px"
             android:layout_height="wrap_content"
-            android:text="copy"
+            android:text="Copy"
             android:textSize="8dp"
             android:id="@+id/copy"
             />
         <Button
             android:layout_width="200px"
             android:layout_height="wrap_content"
-            android:text="open"
+            android:text="Mail"
+            android:textSize="8dp"
+            android:id="@+id/openMail"
+            />
+        <Button
+            android:layout_width="200px"
+            android:layout_height="wrap_content"
+            android:text="Tweet"
             android:textSize="8dp"
             android:id="@+id/openWeb"
             />

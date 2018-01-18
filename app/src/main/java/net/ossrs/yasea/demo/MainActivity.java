@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnRecord;
     private Button btnSwitchEncoder;
     private Button btnWeb;
+    private Button btnMail;
 
     private SharedPreferences sp;
 //    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -72,25 +73,38 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
 //        rtmpUrl = hlsfreeVals[0];
 //        hlsUrl  = hlsfreeVals[1];
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        // restore data.
+        sp = getSharedPreferences("Yasea", MODE_PRIVATE);
+        rtmpUrl = sp.getString("rtmpUrl", "");
+        hlsUrl  = sp.getString("hlsUrl", "");
+
+        if (rtmpUrl == null || rtmpUrl.equals("") || hlsUrl == null || hlsUrl.equals("")) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String hlsfreeResult = httpGetString("http://hlsfree.space/logic/?mode=api");
+                        String[] hlsfreeVals = csv(hlsfreeResult, ",");
+                        rtmpUrl = hlsfreeVals[0];
+                        hlsUrl  = hlsfreeVals[1];
+
+                        SharedPreferences.Editor editor = sp.edit();
+                        editor.putString("rtmpUrl", rtmpUrl);
+                        editor.putString("hlsUrl", hlsUrl);
+                        editor.apply();
+                    } catch (Exception ex) {
+                        System.out.println(ex);
+                    }
+                }
+            }).start();
+
+            while (rtmpUrl == null || rtmpUrl.equals("")) {
                 try {
-                    String hlsfreeResult = httpGetString("http://hlsfree.space/logic/?mode=api");
-                    String[] hlsfreeVals = csv(hlsfreeResult, ",");
-                    rtmpUrl = hlsfreeVals[0];
-                    hlsUrl  = hlsfreeVals[1];
-                } catch(Exception ex) {
-                    System.out.println(ex);
+                    Thread.sleep(100);
+                    Thread.yield();
+                } catch (Exception e) {
                 }
             }
-        }).start();
-
-        while (rtmpUrl == null || rtmpUrl.equals("")) {
-            try {
-                Thread.sleep(100);
-                Thread.yield();
-            } catch (Exception e) {}
         }
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -121,15 +135,27 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
+        //
         btnWeb = (Button) findViewById(R.id.openWeb);
         btnWeb.setOnClickListener(
                 new View.OnClickListener() {
                       @Override
-                      public void onClick(View v) {intentWeb(hlsUrl);
+                      public void onClick(View v) {intentWeb("https://twitter.com/intent/tweet?text=" + hlsUrl);
                   }
               });
         btnWeb.setEnabled(false);
 
+        //
+        btnMail = (Button) findViewById(R.id.openMail);
+        btnMail.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {intentMail(new String[]{""}, "HLSFREE LIVE!", hlsUrl);
+                    }
+                });
+        btnMail.setEnabled(false);
+
+        //
         findViewById(R.id.copy).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -183,6 +209,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
                     btnWeb.setEnabled(true);
+                    btnMail.setEnabled(true);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
@@ -190,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
                     btnWeb.setEnabled(false);
+                    btnMail.setEnabled(false);
                 }
             }
         });
@@ -596,6 +624,17 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         }
         catch(Exception e) {
             return false;
+        }
+    }
+
+    public void intentMail(String[] addresses, String subject, String text) {
+        Intent intent = new Intent(Intent.ACTION_SENDTO);
+        intent.setData(Uri.parse("mailto:")); // only email apps should handle this
+        intent.putExtra(Intent.EXTRA_EMAIL, addresses);
+        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
         }
     }
 }
