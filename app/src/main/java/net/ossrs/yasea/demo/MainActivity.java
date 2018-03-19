@@ -88,6 +88,11 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                         rtmpUrl = hlsfreeVals[0];
                         hlsUrl  = hlsfreeVals[1];
 
+                        //test
+                        rtmpUrl = "rtmp://mxmy8b45.hlsfree.space:1935/hls/0b53451796abc94d52a8310dc70fe146?u=5ec8abc6&p=9c2ad79c";
+                        hlsUrl  = "http://khej6l6t.hlsfree.space/hls/0b53451796abc94d52a8310dc70fe146.m3u8";
+
+
                         SharedPreferences.Editor editor = sp.edit();
                         editor.putString("rtmpUrl", rtmpUrl);
                         editor.putString("hlsUrl", hlsUrl);
